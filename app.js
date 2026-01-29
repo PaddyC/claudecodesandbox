@@ -471,3 +471,457 @@ function escapeHtml(text) {
 
 // Initialize the app when DOM is ready
 document.addEventListener('DOMContentLoaded', init);
+
+// PDF Export Functionality
+// ========================
+
+// Color palette for PDF (RGB format for jsPDF)
+const pdfColors = {
+    primary: [102, 126, 234],      // #667eea
+    primaryDark: [118, 75, 162],   // #764ba2
+    secondary: [240, 147, 251],    // #f093fb
+    success: [17, 153, 142],       // #11998e
+    successLight: [56, 239, 125],  // #38ef7d
+    text: [26, 26, 46],            // #1a1a2e
+    textSecondary: [74, 74, 104],  // #4a4a68
+    textMuted: [139, 139, 167],    // #8b8ba7
+    white: [255, 255, 255],
+    lightGray: [245, 247, 250],
+    border: [226, 232, 240]
+};
+
+// Role colors for PDF charts (RGB)
+const pdfRoleColors = [
+    [102, 126, 234], [240, 147, 251], [79, 172, 254], [67, 233, 123],
+    [250, 112, 154], [168, 237, 234], [255, 154, 158], [255, 236, 210],
+    [102, 126, 234], [17, 153, 142], [252, 92, 125], [0, 198, 251]
+];
+
+function exportToPDF() {
+    const btn = document.getElementById('exportPdfBtn');
+
+    // Check if there's data to export
+    if (roster.length === 0) {
+        alert('No roster data to export. Please add team members first.');
+        return;
+    }
+
+    // Show loading state
+    btn.classList.add('loading');
+    btn.disabled = true;
+
+    // Use setTimeout to allow UI to update
+    setTimeout(() => {
+        try {
+            generatePDF();
+        } catch (error) {
+            console.error('PDF generation error:', error);
+            alert('Error generating PDF. Please try again.');
+        } finally {
+            btn.classList.remove('loading');
+            btn.disabled = false;
+        }
+    }, 100);
+}
+
+function generatePDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 20;
+    const contentWidth = pageWidth - (margin * 2);
+
+    let currentY = 0;
+    let pageNumber = 1;
+
+    // Get data
+    const teams = getTeamsData();
+    const roles = getRolesData();
+    const teamNames = Object.keys(teams).sort();
+    const roleNames = Object.keys(roles).sort((a, b) => roles[b].count - roles[a].count);
+    const totalMembers = roster.length;
+    const totalTeams = teamNames.length;
+    const totalRoles = roleNames.length;
+
+    // Helper function to add new page if needed
+    function checkNewPage(requiredSpace) {
+        if (currentY + requiredSpace > pageHeight - 30) {
+            addFooter();
+            doc.addPage();
+            pageNumber++;
+            currentY = margin;
+            return true;
+        }
+        return false;
+    }
+
+    // Helper function to add footer
+    function addFooter() {
+        doc.setFontSize(9);
+        doc.setTextColor(...pdfColors.textMuted);
+        doc.text(`Page ${pageNumber}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+        doc.text('Confidential - For Internal Use Only', margin, pageHeight - 10);
+        const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        doc.text(dateStr, pageWidth - margin, pageHeight - 10, { align: 'right' });
+    }
+
+    // Helper function to draw rounded rectangle
+    function drawRoundedRect(x, y, w, h, r, fillColor, strokeColor = null) {
+        doc.setFillColor(...fillColor);
+        if (strokeColor) {
+            doc.setDrawColor(...strokeColor);
+            doc.setLineWidth(0.3);
+        }
+        doc.roundedRect(x, y, w, h, r, r, strokeColor ? 'FD' : 'F');
+    }
+
+    // ==========================================
+    // HEADER SECTION
+    // ==========================================
+
+    // Draw gradient header background
+    drawRoundedRect(margin, margin, contentWidth, 50, 4, pdfColors.primary);
+
+    // Add subtle overlay gradient effect (darker at bottom)
+    doc.setFillColor(118, 75, 162, 0.3);
+    drawRoundedRect(margin, margin + 25, contentWidth, 25, 0, [100, 100, 180]);
+
+    // Header text
+    doc.setTextColor(...pdfColors.white);
+    doc.setFontSize(28);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Program Roster Report', margin + 15, margin + 22);
+
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Team Composition & Role Distribution Analysis', margin + 15, margin + 35);
+
+    // Report date
+    const reportDate = new Date().toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+    doc.setFontSize(10);
+    doc.text(reportDate, margin + 15, margin + 45);
+
+    currentY = margin + 65;
+
+    // ==========================================
+    // EXECUTIVE SUMMARY SECTION
+    // ==========================================
+
+    doc.setTextColor(...pdfColors.text);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Executive Summary', margin, currentY);
+
+    currentY += 12;
+
+    // Draw stat boxes
+    const statBoxWidth = (contentWidth - 20) / 3;
+    const statBoxHeight = 35;
+
+    // Teams stat box
+    drawRoundedRect(margin, currentY, statBoxWidth, statBoxHeight, 3, pdfColors.lightGray, pdfColors.border);
+    doc.setFillColor(...pdfColors.primary);
+    doc.roundedRect(margin, currentY, 4, statBoxHeight, 0, 0, 'F');
+
+    doc.setTextColor(...pdfColors.primary);
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.text(totalTeams.toString(), margin + 15, currentY + 16);
+    doc.setTextColor(...pdfColors.textSecondary);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Total Teams', margin + 15, currentY + 26);
+
+    // Members stat box
+    const membersX = margin + statBoxWidth + 10;
+    drawRoundedRect(membersX, currentY, statBoxWidth, statBoxHeight, 3, pdfColors.lightGray, pdfColors.border);
+    doc.setFillColor(...pdfColors.success);
+    doc.roundedRect(membersX, currentY, 4, statBoxHeight, 0, 0, 'F');
+
+    doc.setTextColor(...pdfColors.success);
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.text(totalMembers.toString(), membersX + 15, currentY + 16);
+    doc.setTextColor(...pdfColors.textSecondary);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Team Members', membersX + 15, currentY + 26);
+
+    // Roles stat box
+    const rolesX = margin + (statBoxWidth + 10) * 2;
+    drawRoundedRect(rolesX, currentY, statBoxWidth, statBoxHeight, 3, pdfColors.lightGray, pdfColors.border);
+    doc.setFillColor(...pdfColors.secondary);
+    doc.roundedRect(rolesX, currentY, 4, statBoxHeight, 0, 0, 'F');
+
+    doc.setTextColor(240, 147, 251);
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.text(totalRoles.toString(), rolesX + 15, currentY + 16);
+    doc.setTextColor(...pdfColors.textSecondary);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Unique Roles', rolesX + 15, currentY + 26);
+
+    currentY += statBoxHeight + 20;
+
+    // ==========================================
+    // ROLE DISTRIBUTION SECTION
+    // ==========================================
+
+    checkNewPage(80);
+
+    doc.setTextColor(...pdfColors.text);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Role Distribution', margin, currentY);
+
+    currentY += 12;
+
+    // Draw role distribution cards
+    const roleCardWidth = (contentWidth - 10) / 2;
+    const roleCardHeight = 25;
+
+    roleNames.forEach((roleName, index) => {
+        const role = roles[roleName];
+        const percentage = ((role.count / totalMembers) * 100).toFixed(1);
+        const colorIndex = index % pdfRoleColors.length;
+        const roleColor = pdfRoleColors[colorIndex];
+
+        // Check if we need a new page
+        if (checkNewPage(roleCardHeight + 5)) {
+            doc.setTextColor(...pdfColors.text);
+            doc.setFontSize(16);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Role Distribution (continued)', margin, currentY);
+            currentY += 12;
+        }
+
+        const cardX = margin + (index % 2) * (roleCardWidth + 10);
+        const cardY = currentY + Math.floor(index / 2) * (roleCardHeight + 8);
+
+        // Card background
+        drawRoundedRect(cardX, cardY, roleCardWidth, roleCardHeight, 3, pdfColors.white, pdfColors.border);
+
+        // Color accent bar
+        doc.setFillColor(...roleColor);
+        doc.roundedRect(cardX, cardY, 4, roleCardHeight, 2, 0, 'F');
+
+        // Role name
+        doc.setTextColor(...pdfColors.text);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text(roleName, cardX + 10, cardY + 9);
+
+        // Count and percentage
+        doc.setTextColor(...roleColor);
+        doc.setFontSize(14);
+        doc.text(role.count.toString(), cardX + roleCardWidth - 35, cardY + 10);
+
+        doc.setTextColor(...pdfColors.textMuted);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`${percentage}%`, cardX + roleCardWidth - 15, cardY + 10);
+
+        // Progress bar
+        const barWidth = roleCardWidth - 20;
+        const barHeight = 4;
+        const barX = cardX + 10;
+        const barY = cardY + 16;
+        const fillWidth = (role.count / Math.max(...roleNames.map(r => roles[r].count))) * barWidth;
+
+        // Bar background
+        doc.setFillColor(230, 235, 240);
+        doc.roundedRect(barX, barY, barWidth, barHeight, 1, 1, 'F');
+
+        // Bar fill
+        doc.setFillColor(...roleColor);
+        doc.roundedRect(barX, barY, fillWidth, barHeight, 1, 1, 'F');
+
+        // Teams count
+        doc.setTextColor(...pdfColors.textMuted);
+        doc.setFontSize(8);
+        doc.text(`${role.teams.length} team${role.teams.length !== 1 ? 's' : ''}`, cardX + 10, cardY + 23);
+    });
+
+    // Calculate space used by role cards
+    const roleRows = Math.ceil(roleNames.length / 2);
+    currentY += roleRows * (roleCardHeight + 8) + 15;
+
+    // ==========================================
+    // TEAM BREAKDOWN SECTION
+    // ==========================================
+
+    checkNewPage(60);
+
+    doc.setTextColor(...pdfColors.text);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Team Breakdown', margin, currentY);
+
+    currentY += 12;
+
+    // Team cards
+    teamNames.forEach((teamName, teamIndex) => {
+        const team = teams[teamName];
+        const roleEntries = Object.entries(team.roles).sort((a, b) => b[1] - a[1]);
+        const cardHeight = 30 + (roleEntries.length * 8);
+
+        if (checkNewPage(cardHeight + 10)) {
+            doc.setTextColor(...pdfColors.text);
+            doc.setFontSize(16);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Team Breakdown (continued)', margin, currentY);
+            currentY += 12;
+        }
+
+        // Card background
+        drawRoundedRect(margin, currentY, contentWidth, cardHeight, 4, pdfColors.white, pdfColors.border);
+
+        // Team header bar
+        doc.setFillColor(...pdfColors.primary);
+        doc.roundedRect(margin, currentY, contentWidth, 10, 4, 0, 'F');
+        doc.setFillColor(...pdfColors.primary);
+        doc.rect(margin, currentY + 5, contentWidth, 5, 'F');
+
+        // Team name
+        doc.setTextColor(...pdfColors.white);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text(teamName, margin + 8, currentY + 7);
+
+        // Member count badge
+        doc.setFillColor(255, 255, 255, 0.2);
+        const badgeText = `${team.members.length} member${team.members.length !== 1 ? 's' : ''}`;
+        const badgeWidth = doc.getTextWidth(badgeText) + 10;
+        doc.roundedRect(pageWidth - margin - badgeWidth - 5, currentY + 2.5, badgeWidth, 6, 1, 1, 'F');
+        doc.setFontSize(8);
+        doc.text(badgeText, pageWidth - margin - badgeWidth, currentY + 6.5);
+
+        // Role breakdown
+        let roleY = currentY + 18;
+
+        roleEntries.forEach(([role, count], idx) => {
+            const colorIndex = roleNames.indexOf(role) % pdfRoleColors.length;
+            const roleColor = pdfRoleColors[colorIndex >= 0 ? colorIndex : 0];
+
+            // Role color dot
+            doc.setFillColor(...roleColor);
+            doc.circle(margin + 12, roleY - 1, 2, 'F');
+
+            // Role name
+            doc.setTextColor(...pdfColors.textSecondary);
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'normal');
+            doc.text(role, margin + 18, roleY);
+
+            // Count
+            doc.setTextColor(...pdfColors.text);
+            doc.setFont('helvetica', 'bold');
+            doc.text(count.toString(), margin + contentWidth - 20, roleY);
+
+            roleY += 8;
+        });
+
+        currentY += cardHeight + 10;
+    });
+
+    // ==========================================
+    // DETAILED ROSTER SECTION
+    // ==========================================
+
+    checkNewPage(40);
+
+    doc.setTextColor(...pdfColors.text);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Detailed Team Roster', margin, currentY);
+
+    currentY += 12;
+
+    teamNames.forEach((teamName, teamIndex) => {
+        const team = teams[teamName];
+        const sortedMembers = team.members.sort((a, b) => a.fullName.localeCompare(b.fullName));
+
+        // Calculate required height
+        const tableHeaderHeight = 10;
+        const rowHeight = 8;
+        const tableHeight = tableHeaderHeight + (sortedMembers.length * rowHeight) + 15;
+
+        if (checkNewPage(tableHeight + 20)) {
+            doc.setTextColor(...pdfColors.text);
+            doc.setFontSize(16);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Detailed Team Roster (continued)', margin, currentY);
+            currentY += 12;
+        }
+
+        // Team section header
+        doc.setFillColor(...pdfColors.primary);
+        doc.roundedRect(margin, currentY, contentWidth, 8, 2, 2, 'F');
+        doc.setTextColor(...pdfColors.white);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${teamName} (${team.members.length})`, margin + 5, currentY + 5.5);
+
+        currentY += 12;
+
+        // Table header
+        doc.setFillColor(...pdfColors.lightGray);
+        doc.rect(margin, currentY, contentWidth, 7, 'F');
+
+        doc.setTextColor(...pdfColors.textSecondary);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.text('NAME', margin + 5, currentY + 5);
+        doc.text('ROLE', margin + 85, currentY + 5);
+
+        currentY += 8;
+
+        // Table rows
+        sortedMembers.forEach((member, idx) => {
+            // Alternate row background
+            if (idx % 2 === 0) {
+                doc.setFillColor(252, 252, 253);
+                doc.rect(margin, currentY, contentWidth, rowHeight, 'F');
+            }
+
+            // Border line
+            doc.setDrawColor(...pdfColors.border);
+            doc.setLineWidth(0.1);
+            doc.line(margin, currentY + rowHeight, margin + contentWidth, currentY + rowHeight);
+
+            const colorIndex = roleNames.indexOf(member.role) % pdfRoleColors.length;
+            const roleColor = pdfRoleColors[colorIndex >= 0 ? colorIndex : 0];
+
+            // Name
+            doc.setTextColor(...pdfColors.text);
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'normal');
+            doc.text(member.fullName, margin + 5, currentY + 5.5);
+
+            // Role with color indicator
+            doc.setFillColor(...roleColor);
+            doc.circle(margin + 85, currentY + 4, 1.5, 'F');
+            doc.setTextColor(...pdfColors.textSecondary);
+            doc.text(member.role, margin + 90, currentY + 5.5);
+
+            currentY += rowHeight;
+        });
+
+        currentY += 15;
+    });
+
+    // Add final footer
+    addFooter();
+
+    // Save the PDF
+    const filename = `roster-report-${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(filename);
+}

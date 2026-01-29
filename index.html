@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roster Management</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Roster Management</h1>
+            <p class="subtitle">Manage your team and program rosters</p>
+        </header>
+
+        <main>
+            <!-- Add Person Form -->
+            <section class="card add-person-section">
+                <h2>Add Team Member</h2>
+                <form id="addPersonForm">
+                    <div class="form-group">
+                        <label for="fullName">Full Name</label>
+                        <input type="text" id="fullName" name="fullName" required placeholder="Enter full name">
+                    </div>
+                    <div class="form-group">
+                        <label for="teamName">Team Name</label>
+                        <input type="text" id="teamName" name="teamName" required placeholder="Enter team name" list="teamSuggestions">
+                        <datalist id="teamSuggestions"></datalist>
+                    </div>
+                    <div class="form-group">
+                        <label for="role">Role</label>
+                        <input type="text" id="role" name="role" required placeholder="Enter role (e.g., Developer, Designer)">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add to Roster</button>
+                </form>
+            </section>
+
+            <!-- Program Roster Summary -->
+            <section class="card program-roster-section">
+                <h2>Program Roster</h2>
+                <div id="programSummary" class="program-summary">
+                    <p class="empty-state">No teams added yet. Add team members above to see the program roster.</p>
+                </div>
+            </section>
+
+            <!-- Team Rosters -->
+            <section class="card team-rosters-section">
+                <h2>Team Rosters</h2>
+                <div id="teamRosters" class="team-rosters">
+                    <p class="empty-state">No team members added yet.</p>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Roster Management Application</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

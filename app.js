@@ -55,6 +55,14 @@ function init() {
     renderAll();
     setupEventListeners();
     createParticles();
+
+    // Hide the start-here tip if the roster already has data
+    if (roster.length > 0) {
+        const startHereTip = document.getElementById('startHereTip');
+        if (startHereTip) {
+            startHereTip.classList.add('hidden');
+        }
+    }
 }
 
 // Create floating particles
@@ -88,6 +96,14 @@ function saveToStorage() {
 // Setup event listeners
 function setupEventListeners() {
     addPersonForm.addEventListener('submit', handleAddPerson);
+
+    // Hide the "start here" tip when the user focuses on the name field
+    const startHereTip = document.getElementById('startHereTip');
+    if (startHereTip) {
+        fullNameInput.addEventListener('focus', () => {
+            startHereTip.classList.add('hidden');
+        }, { once: true });
+    }
 }
 
 // Handle adding a new person
@@ -471,6 +487,136 @@ function escapeHtml(text) {
 
 // Initialize the app when DOM is ready
 document.addEventListener('DOMContentLoaded', init);
+
+// Confluence Wiki Markup Export
+// ==============================
+
+function exportToConfluence() {
+    const btn = document.getElementById('exportConfluenceBtn');
+
+    if (roster.length === 0) {
+        alert('No roster data to export. Please add team members first.');
+        return;
+    }
+
+    btn.classList.add('loading');
+    btn.disabled = true;
+
+    setTimeout(() => {
+        try {
+            generateConfluenceMarkup();
+        } catch (error) {
+            console.error('Confluence export error:', error);
+            alert('Error generating Confluence markup. Please try again.');
+        } finally {
+            btn.classList.remove('loading');
+            btn.disabled = false;
+        }
+    }, 100);
+}
+
+function generateConfluenceMarkup() {
+    const teams = getTeamsData();
+    const roles = getRolesData();
+    const teamNames = Object.keys(teams).sort();
+    const roleNames = Object.keys(roles).sort((a, b) => roles[b].count - roles[a].count);
+    const totalMembers = roster.length;
+    const totalTeams = teamNames.length;
+    const totalRoles = roleNames.length;
+
+    const reportDate = new Date().toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+
+    let markup = '';
+
+    // Title
+    markup += 'h1. Program Roster Report\n\n';
+    markup += `{info:title=Report Date}${reportDate}{info}\n\n`;
+
+    // Executive Summary
+    markup += 'h2. Executive Summary\n\n';
+    markup += '||Metric||Value||\n';
+    markup += `|Total Teams|${totalTeams}|\n`;
+    markup += `|Total Members|${totalMembers}|\n`;
+    markup += `|Unique Roles|${totalRoles}|\n`;
+    markup += `|Average Team Size|${(totalMembers / totalTeams).toFixed(1)}|\n\n`;
+
+    // Role Distribution
+    markup += 'h2. Role Distribution\n\n';
+    markup += '||Role||Count||% of Total||Teams||\n';
+
+    roleNames.forEach(roleName => {
+        const role = roles[roleName];
+        const percentage = ((role.count / totalMembers) * 100).toFixed(1);
+        const teamList = role.teams.join(', ');
+        markup += `|${roleName}|${role.count}|${percentage}%|${teamList}|\n`;
+    });
+
+    markup += '\n';
+
+    // Status macro for visual bar chart
+    markup += '{panel:title=Role Distribution Chart|borderStyle=solid|borderColor=#667eea}\n';
+    roleNames.forEach(roleName => {
+        const role = roles[roleName];
+        const barLength = Math.round((role.count / Math.max(...roleNames.map(r => roles[r].count))) * 20);
+        const bar = '\u2588'.repeat(barLength);
+        markup += `* *${roleName}* ${bar} (${role.count})\n`;
+    });
+    markup += '{panel}\n\n';
+
+    // Team Breakdown
+    markup += 'h2. Team Breakdown\n\n';
+
+    teamNames.forEach(teamName => {
+        const team = teams[teamName];
+        const roleEntries = Object.entries(team.roles).sort((a, b) => b[1] - a[1]);
+
+        markup += `h3. ${teamName} (${team.members.length} member${team.members.length !== 1 ? 's' : ''})\n\n`;
+
+        markup += '||Role||Count||\n';
+        roleEntries.forEach(([role, count]) => {
+            markup += `|${role}|${count}|\n`;
+        });
+
+        markup += '\n';
+    });
+
+    // Detailed Team Roster
+    markup += 'h2. Detailed Team Roster\n\n';
+
+    teamNames.forEach(teamName => {
+        const team = teams[teamName];
+        const sortedMembers = team.members.sort((a, b) => a.fullName.localeCompare(b.fullName));
+
+        markup += `h3. ${teamName}\n\n`;
+        markup += '||Name||Role||\n';
+
+        sortedMembers.forEach(member => {
+            markup += `|${member.fullName}|${member.role}|\n`;
+        });
+
+        markup += '\n';
+    });
+
+    // Footer
+    markup += '----\n';
+    markup += `_Generated on ${reportDate} | Confidential - For Internal Use Only_\n`;
+
+    // Download the file
+    const blob = new Blob([markup], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `roster-report-${new Date().toISOString().split('T')[0]}.confluence.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
 
 // PDF Export Functionality
 // ========================

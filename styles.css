@@ -255,6 +255,62 @@ header .subtitle {
     height: 26px;
 }
 
+/* Start Here Tip */
+.start-here-tip {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    border: 2px dashed rgba(102, 126, 234, 0.4);
+    border-radius: var(--border-radius-sm);
+    padding: 14px 20px;
+    margin-bottom: 20px;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    font-weight: 600;
+    animation: tipPulse 2s ease-in-out infinite;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.start-here-tip.hidden {
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+    margin-bottom: 0;
+    padding: 0 20px;
+    height: 0;
+    overflow: hidden;
+    border: none;
+}
+
+.start-here-arrow {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    background: var(--primary-gradient);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    animation: tipBounce 1.5s ease-in-out infinite;
+}
+
+.start-here-arrow svg {
+    width: 16px;
+    height: 16px;
+}
+
+@keyframes tipPulse {
+    0%, 100% { border-color: rgba(102, 126, 234, 0.4); }
+    50% { border-color: rgba(102, 126, 234, 0.7); }
+}
+
+@keyframes tipBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(4px); }
+}
+
 .add-icon { background: var(--primary-gradient); }
 .role-icon { background: var(--secondary-gradient); }
 .program-icon { background: var(--success-gradient); }
@@ -267,6 +323,81 @@ header .subtitle {
     border-radius: 20px;
     font-size: 0.85rem;
     font-weight: 600;
+}
+
+/* Export Bar */
+.export-bar-section {
+    padding: 20px 30px;
+}
+
+.export-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.export-bar-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.export-bar-label svg {
+    width: 24px;
+    height: 24px;
+    color: var(--text-secondary);
+}
+
+.export-bar-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-export-pdf {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    box-shadow: 0 4px 15px rgba(17, 153, 142, 0.4);
+}
+
+.btn-export-pdf:hover {
+    box-shadow: 0 6px 25px rgba(17, 153, 142, 0.5);
+}
+
+.btn-export-confluence {
+    background: linear-gradient(135deg, #0052CC 0%, #2684FF 100%);
+    box-shadow: 0 4px 15px rgba(0, 82, 204, 0.4);
+}
+
+.btn-export-confluence:hover {
+    box-shadow: 0 6px 25px rgba(0, 82, 204, 0.5);
+}
+
+.btn-export-confluence:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-export-confluence.loading {
+    position: relative;
+    color: transparent;
+}
+
+.btn-export-confluence.loading::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    top: 50%;
+    left: 50%;
+    margin-left: -10px;
+    margin-top: -10px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 0.8s linear infinite;
 }
 
 /* Form Styles */
@@ -874,6 +1005,20 @@ footer {
     .section-badge {
         margin-top: 10px;
     }
+
+    .export-bar {
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+    }
+
+    .export-bar-buttons {
+        flex-direction: column;
+    }
+
+    .export-bar-buttons .btn {
+        justify-content: center;
+    }
 }
 
 /* Dark mode support */
@@ -922,7 +1067,7 @@ footer {
 @media print {
     .particles,
     .btn-danger,
-    .btn-export,
+    .export-bar-section,
     .add-person-section {
         display: none;
     }

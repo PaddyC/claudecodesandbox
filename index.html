@@ -22,7 +22,7 @@
                     </svg>
                 </div>
                 <h1>Roster Management</h1>
-                <p class="subtitle">Manage your team and program rosters</p>
+                <p class="subtitle">Manage your team and program rosters, download a PDF report, or export to Atlassian markup to create a Confluence page.</p>
             </div>
             <div class="header-stats" id="headerStats">
                 <div class="stat-bubble">
@@ -41,8 +41,43 @@
         </header>
 
         <main>
+            <!-- Export Bar -->
+            <section class="card glass export-bar-section">
+                <div class="export-bar">
+                    <div class="export-bar-label">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7,10 12,15 17,10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        Export Roster
+                    </div>
+                    <div class="export-bar-buttons">
+                        <button class="btn btn-export btn-export-pdf" id="exportPdfBtn" onclick="exportToPDF()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14,2 14,8 20,8"/>
+                                <line x1="12" y1="18" x2="12" y2="12"/>
+                                <polyline points="9,15 12,12 15,15"/>
+                            </svg>
+                            Export PDF
+                        </button>
+                        <button class="btn btn-export btn-export-confluence" id="exportConfluenceBtn" onclick="exportToConfluence()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                                <line x1="8" y1="7" x2="16" y2="7"/>
+                                <line x1="8" y1="11" x2="16" y2="11"/>
+                                <line x1="8" y1="15" x2="12" y2="15"/>
+                            </svg>
+                            Export to Jira Markup
+                        </button>
+                    </div>
+                </div>
+            </section>
+
             <!-- Add Person Form -->
-            <section class="card glass add-person-section">
+            <section class="card glass add-person-section" id="addPersonSection">
                 <div class="card-header">
                     <div class="card-icon add-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -53,6 +88,15 @@
                         </svg>
                     </div>
                     <h2>Add Team Member</h2>
+                </div>
+                <div class="start-here-tip" id="startHereTip">
+                    <div class="start-here-arrow">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <polyline points="19,12 12,19 5,12"/>
+                        </svg>
+                    </div>
+                    <span>Start here! Add your first team member to get going.</span>
                 </div>
                 <form id="addPersonForm">
                     <div class="form-row">
@@ -115,15 +159,6 @@
                     </div>
                     <h2>Role Summary</h2>
                     <div class="section-badge" id="roleBadge">0 Unique Roles</div>
-                    <button class="btn btn-export" id="exportPdfBtn" onclick="exportToPDF()">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                            <polyline points="14,2 14,8 20,8"/>
-                            <line x1="12" y1="18" x2="12" y2="12"/>
-                            <polyline points="9,15 12,12 15,15"/>
-                        </svg>
-                        Export PDF
-                    </button>
                 </div>
                 <div id="roleSummary" class="role-summary">
                     <p class="empty-state">
